@@ -1,0 +1,9 @@
+const LOCAL_API_URL = 'http://localhost:5001';
+const PRODUCTION_API_URL = 'https://secure-note-backend-topaz.vercel.app';
+const isLocalHost =
+  typeof window !== 'undefined' &&
+  ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+export const API_BASE = (
+  import.meta.env.VITE_API_URL || (isLocalHost ? LOCAL_API_URL : PRODUCTION_API_URL)
+).replace(/\/+$/, '');

@@ -5,12 +5,9 @@ import {
   Folder,
   FolderOpen,
 } from 'lucide-react';
+import { API_BASE } from '../api/config';
 
-export const API_BASE =
-  (import.meta.env.VITE_API_URL || 'https://secure-note-backend-topaz.vercel.app').replace(
-    /\/+$/,
-    ''
-  );
+export { API_BASE };
 export const EASE = [0.16, 1, 0.3, 1];
 
 export const avatarUrl = (avatar = '') => {

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { StickyNote, Pencil, Trash2, Plus, Shield, Search } from 'lucide-react';
+import { StickyNote, Pencil, Trash2, Plus, Shield, Search, Eye } from 'lucide-react';
 import PageShell from '../components/PageShell';
 import NoteModal from '../components/NoteModal';
 import ConfirmModal from '../components/ConfirmModal';
+import ViewDetailsModal from '../components/ViewDetailsModal';
 import Pagination from '../components/Pagination';
 import { ListSkeleton, EmptyState } from '../components/Skeletons';
 import api from '../api/axios';
@@ -30,6 +31,7 @@ const DashboardPage = () => {
 
   const [deleting, setDeleting] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [viewingNote, setViewingNote] = useState(null);
 
   const loadNotes = useCallback(async (targetPage = 1, term = '') => {
     setLoading(true);
@@ -213,6 +215,14 @@ const DashboardPage = () => {
                   <div className="flex shrink-0 items-center gap-1.5">
                     <button
                       type="button"
+                      onClick={() => setViewingNote(note)}
+                      aria-label="View note"
+                      className="grid h-9 w-9 place-items-center rounded-xl border border-cream-200 bg-white/80 text-ink-500 transition hover:border-brand-sky/40 hover:text-brand-sky"
+                    >
+                      <Eye size={15} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => openEdit(note)}
                       aria-label="Edit note"
                       className="grid h-9 w-9 place-items-center rounded-xl border border-cream-200 bg-white/80 text-ink-500 transition hover:border-brand-grape/40 hover:text-brand-grape"
@@ -256,6 +266,13 @@ const DashboardPage = () => {
         error={modalError}
         onSubmit={saveNote}
         onCancel={() => setModalOpen(false)}
+      />
+
+      <ViewDetailsModal
+        type="note"
+        item={viewingNote}
+        authorName={user?.name}
+        onClose={() => setViewingNote(null)}
       />
 
       <ConfirmModal

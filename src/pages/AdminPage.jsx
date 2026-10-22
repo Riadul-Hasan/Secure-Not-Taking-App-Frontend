@@ -12,9 +12,11 @@ import {
   RefreshCw,
   Layers,
   Shield,
+  Eye,
 } from 'lucide-react';
 import PageShell from '../components/PageShell';
 import UserModal from '../components/UserModal';
+import ViewDetailsModal from '../components/ViewDetailsModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Pagination from '../components/Pagination';
 import { ListSkeleton, EmptyState } from '../components/Skeletons';
@@ -67,6 +69,7 @@ const AdminPage = () => {
   const [inspectorUsers, setInspectorUsers] = useState([]);
   const [inspectorUsersLoading, setInspectorUsersLoading] = useState(true);
   const [inspectorUsersError, setInspectorUsersError] = useState('');
+  const [viewingItem, setViewingItem] = useState(null);
 
   const loadUsers = useCallback(async (targetPage = 1, term = '', role = '') => {
     setUsersLoading(true);
@@ -398,6 +401,14 @@ const AdminPage = () => {
                     <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         type="button"
+                        onClick={() => setViewingItem({ type: 'user', item: u })}
+                        aria-label={`View ${u.name}`}
+                        className="grid h-9 w-9 place-items-center rounded-xl border border-cream-200 bg-white/80 text-ink-500 transition hover:border-brand-sky/40 hover:text-brand-sky"
+                      >
+                        <Eye size={15} />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => {
                           setUserModal({ open: true, user: u });
                           setUserModalError('');
@@ -478,23 +489,29 @@ const AdminPage = () => {
             {!notesLoading && notes.length > 0 && (
               <div className="space-y-3">
                 {notes.map((note) => (
-                  <div key={note._id} className="w-card w-card-hover p-5">
-                    <div className="flex items-start gap-4">
-                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-grape to-purple-500 text-white shadow-warm-sm">
-                        <StickyNote size={18} strokeWidth={2.2} />
-                      </span>
+                  <div key={note._id} className="w-card w-card-hover flex items-start gap-4 p-5">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-grape to-purple-500 text-white shadow-warm-sm">
+                      <StickyNote size={18} strokeWidth={2.2} />
+                    </span>
 
-                      <div className="min-w-0 flex-1">
-                        <h3 className="w-title truncate text-[15.5px]">{note.title}</h3>
-                        <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
-                          {snippet(note.content, 160)}
-                        </p>
-                        <p className="mt-2 text-[11.5px] font-semibold uppercase tracking-wider text-ink-400">
-                          {note.user?.name || 'Unknown'} · {relTime(note.createdAt)} ·{' '}
-                          {formatDate(note.createdAt)}
-                        </p>
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="w-title truncate text-[15.5px]">{note.title}</h3>
+                      <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
+                        {snippet(note.content, 160)}
+                      </p>
+                      <p className="mt-2 text-[11.5px] font-semibold uppercase tracking-wider text-ink-400">
+                        {note.user?.name || 'Unknown'} · {relTime(note.createdAt)} ·{' '}
+                        {formatDate(note.createdAt)}
+                      </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingItem({ type: 'note', item: note })}
+                      aria-label={`View note: ${note.title}`}
+                      className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cream-200 bg-white/80 text-ink-500 transition hover:border-brand-sky/40 hover:text-brand-sky"
+                    >
+                      <Eye size={15} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -581,10 +598,14 @@ const AdminPage = () => {
                               key={member._id}
                               className="flex items-center justify-between gap-2 text-[12.5px]"
                             >
-                              <span className="truncate text-ink-700">
-                                {member.name}{' '}
-                                <span className="text-ink-400">· {member.email}</span>
-                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setViewingItem({ type: 'user', item: member })}
+                                className="truncate text-left text-ink-700 transition hover:text-brand-sky"
+                                aria-label={`View ${member.name}`}
+                              >
+                                {member.name} <span className="text-ink-400">· {member.email}</span>
+                              </button>
                               <span className="shrink-0 rounded-full bg-cream-100 px-2 py-0.5 text-[10px] font-bold uppercase text-ink-500">
                                 {member.role}
                               </span>
@@ -699,12 +720,22 @@ const AdminPage = () => {
                       </p>
                     )}
                     {posts.posts.map((post) => (
-                      <div key={post._id} className="rounded-2xl border border-cream-200 bg-white/70 p-4">
-                        <p className="text-[13.5px] font-bold text-ink-900">{post.title}</p>
-                        <p className="mt-1 text-[12.5px] text-ink-500">{snippet(post.content, 150)}</p>
-                        <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
-                          {formatDate(post.createdAt)}
-                        </p>
+                      <div key={post._id} className="flex items-start gap-3 rounded-2xl border border-cream-200 bg-white/70 p-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13.5px] font-bold text-ink-900">{post.title}</p>
+                          <p className="mt-1 text-[12.5px] text-ink-500">{snippet(post.content, 150)}</p>
+                          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
+                            {formatDate(post.createdAt)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setViewingItem({ type: 'post', item: post })}
+                          aria-label={`View post: ${post.title}`}
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cream-200 bg-white/80 text-ink-500 transition hover:border-brand-sky/40 hover:text-brand-sky"
+                        >
+                          <Eye size={15} />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -728,6 +759,11 @@ const AdminPage = () => {
         onCancel={() => {
           if (!userSaving) setUserModal({ open: false, user: null });
         }}
+      />
+      <ViewDetailsModal
+        type={viewingItem?.type}
+        item={viewingItem?.item}
+        onClose={() => setViewingItem(null)}
       />
       <ConfirmModal
         open={Boolean(deletingUser)}
