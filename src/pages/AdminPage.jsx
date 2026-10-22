@@ -64,6 +64,9 @@ const AdminPage = () => {
   const [postsLoading, setPostsLoading] = useState(false);
   const [inspectUserId, setInspectUserId] = useState('');
   const [postMeta, setPostMeta] = useState({ total: 0, page: 1, limit: PAGE_SIZE, totalPages: 0 });
+  const [inspectorUsers, setInspectorUsers] = useState([]);
+  const [inspectorUsersLoading, setInspectorUsersLoading] = useState(true);
+  const [inspectorUsersError, setInspectorUsersError] = useState('');
 
   const loadUsers = useCallback(async (targetPage = 1, term = '', role = '') => {
     setUsersLoading(true);
@@ -89,6 +92,31 @@ const AdminPage = () => {
       setUsers([]);
     } finally {
       setUsersLoading(false);
+    }
+  }, []);
+
+  const loadInspectorUsers = useCallback(async () => {
+    setInspectorUsersLoading(true);
+    setInspectorUsersError('');
+    try {
+      const firstPage = await api.get('/users', {
+        params: { page: 1, limit: PAGE_SIZE },
+      });
+      const totalPages = firstPage.data?.totalPages || 1;
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, totalPages - 1) }, (_, index) =>
+          api.get('/users', { params: { page: index + 2, limit: PAGE_SIZE } })
+        )
+      );
+      setInspectorUsers([
+        ...(firstPage.data?.data || []),
+        ...remainingPages.flatMap((response) => response.data?.data || []),
+      ]);
+    } catch (err) {
+      setInspectorUsersError(err?.response?.data?.message || 'Could not load users for inspection');
+      setInspectorUsers([]);
+    } finally {
+      setInspectorUsersLoading(false);
     }
   }, []);
 
@@ -170,7 +198,8 @@ const AdminPage = () => {
 
   useEffect(() => {
     loadUsers(1, '', '');
-  }, [loadUsers]);
+    loadInspectorUsers();
+  }, [loadUsers, loadInspectorUsers]);
 
   useEffect(() => {
     loadNotes(1, '');
@@ -211,7 +240,10 @@ const AdminPage = () => {
       setUserModal({ open: false, user: null });
       const targetPage = isEditing ? userPage : 1;
       setUserPage(targetPage);
-      await loadUsers(targetPage, userSearch.trim(), roleFilter);
+      await Promise.all([
+        loadUsers(targetPage, userSearch.trim(), roleFilter),
+        loadInspectorUsers(),
+      ]);
     } catch (err) {
       const message = err?.response?.data?.message || 'Could not save the user';
       setUserModalError(message);
@@ -236,6 +268,12 @@ const AdminPage = () => {
       const nextPage = users.length === 1 && userPage > 1 ? userPage - 1 : userPage;
       setUserPage(nextPage);
       loadUsers(nextPage, userSearch.trim(), roleFilter);
+      loadInspectorUsers();
+      if (inspectUserId === deletingUser._id) {
+        setInspectUserId('');
+        setPosts(null);
+        setPostsError('');
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Could not delete the user');
     } finally {
@@ -583,25 +621,49 @@ const AdminPage = () => {
               </p>
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <input
-                  type="text"
+                <select
                   value={inspectUserId}
-                  onChange={(e) => setInspectUserId(e.target.value.trim())}
-                  placeholder="Paste a user id…"
-                  className="w-field flex-1 !py-2.5 text-[13.5px]"
-                />
+                  onChange={(e) => {
+                    setInspectUserId(e.target.value);
+                    setPosts(null);
+                    setPostsError('');
+                    setPostMeta((meta) => ({ ...meta, page: 1 }));
+                  }}
+                  disabled={inspectorUsersLoading || postsLoading || Boolean(inspectorUsersError)}
+                  aria-label="Select a user to inspect"
+                  className="w-field flex-1 !py-2.5 text-[13.5px] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <option value="">
+                    {inspectorUsersLoading
+                      ? 'Loading users…'
+                      : inspectorUsersError
+                        ? 'Unable to load users'
+                        : 'Select a user…'}
+                  </option>
+                  {inspectorUsers.map((user) => (
+                    <option key={user._id} value={user._id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   onClick={() => {
                     setPostMeta((meta) => ({ ...meta, page: 1 }));
                     loadUserPosts(inspectUserId, 1);
                   }}
-                  disabled={!inspectUserId || postsLoading}
+                  disabled={!inspectUserId || postsLoading || inspectorUsersLoading}
                   className="w-btn-primary px-5 py-2.5 text-sm"
                 >
                   {postsLoading ? 'Loading…' : 'Inspect user'}
                 </button>
               </div>
+
+              {inspectorUsersError && (
+                <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-semibold text-rose-600">
+                  {inspectorUsersError}
+                </p>
+              )}
 
               {postsError && (
                 <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-semibold text-rose-600">
