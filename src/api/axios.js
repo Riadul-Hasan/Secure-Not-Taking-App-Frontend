@@ -1,6 +1,10 @@
 import axios, { AxiosHeaders } from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE =
+  (import.meta.env.VITE_API_URL || 'https://secure-note-backend-topaz.vercel.app').replace(
+    /\/+$/,
+    ''
+  );
 
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
